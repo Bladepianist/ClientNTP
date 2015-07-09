@@ -17,11 +17,9 @@ namespace ClientNTP
 
         static void Main(string[] args)
         {
-            // Adresse du serveur à joindre
-            IPAddress ip_addressServer = IPAddress.Parse("192.168.211.54");
-
+            UInt32 serveurRetour = 0;
             byte[] trame = new byte[48];
-            byte[] 
+            trame[0] = 0x23; // héxadécimal
             Socket sock = null;
 
             try
@@ -30,12 +28,13 @@ namespace ClientNTP
                 sock = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
                 // Connexion au serveur (PAS de connect)
-                IPEndPoint serveur = new IPEndPoint(ip_addressServer, 6000);
+                IPEndPoint serveur = new IPEndPoint(Dns.GetHostEntry("ntp.u-picardie.fr").AddressList[0], 123);
                 EndPoint serveurRemote = (EndPoint)serveur;
 
+                Console.WriteLine("Connecté à : " + serveur.Address);
                 //Envoie des données
-                sock.SendTo(b_userString, serveur);
-                sock.ReceiveFrom(b_serverStringResponse, ref serveurRemote);
+                sock.SendTo(trame, serveur);
+                sock.ReceiveFrom(trame, ref serveurRemote);
             }
             catch (Exception ex)
             {
@@ -53,9 +52,15 @@ namespace ClientNTP
                 }
             }
 
-            serveurRetour = Encoding.UTF8.GetString(b_serverStringResponse);
+            serveurRetour = BitConverter.ToUInt32(trame, 40);
 
-            Console.WriteLine(serveurRetour);
+            serveurRetour = ReverseBytes(serveurRetour);
+
+            DateTime start = new DateTime(1900, 1, 1);
+            start = start.AddSeconds(serveurRetour);
+            start = start.ToLocalTime();
+
+            Console.WriteLine("Il est : " + start.ToString());
             Console.ReadKey();
         }
     }
